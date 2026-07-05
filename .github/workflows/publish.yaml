@@ -59,8 +59,7 @@ jobs:
         if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
-          # Includes xdg-utils to fix the Tauri AppImage bundle error
-          sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libicu-dev libpng-dev libharfbuzz-dev libgraphite2-dev xdg-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libicu-dev libpng-dev libharfbuzz-dev libgraphite2-dev xdg-utils
           # Force Tectonic to bake dependencies directly into the binary
           echo "TECTONIC_PKGCONFIG_FORCE_SEMI_STATIC=1" >> $GITHUB_ENV
 
