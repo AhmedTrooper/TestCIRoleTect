@@ -1,7 +1,7 @@
 {
   "name": "roletect",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "The LLM Orchestrated, Privacy First, Centralized Job Application Vault, Local First LATEX Engine & Professional Document Optimization Tool",
   "type": "module",
   "scripts": {
