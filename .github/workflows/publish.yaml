@@ -62,6 +62,8 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libicu-dev libpng-dev libharfbuzz-dev libgraphite2-dev xdg-utils
           # Force Tectonic to bake dependencies directly into the binary
           echo "TECTONIC_PKGCONFIG_FORCE_SEMI_STATIC=1" >> $GITHUB_ENV
+          # Link the C++ standard library required by Tectonic's C++ components (ICU/Harfbuzz)
+          echo "RUSTFLAGS=-C link-arg=-lstdc++" >> $GITHUB_ENV
 
       # --- MACOS SETUP ---
       - name: Setup Tectonic Dependencies (macOS)
