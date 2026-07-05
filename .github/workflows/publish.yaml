@@ -22,10 +22,10 @@ jobs:
             args: "--target aarch64-apple-darwin"
 
           # --- LINUX ---
-          - platform: "ubuntu-22.04" # Linux x64
+          - platform: "ubuntu-24.04" # Linux x64
             target: "x86_64-unknown-linux-gnu"
             args: ""
-          - platform: "ubuntu-22.04-arm" # Linux ARM64
+          - platform: "ubuntu-24.04-arm" # Linux ARM64
             target: "aarch64-unknown-linux-gnu"
             args: ""
 
@@ -61,8 +61,8 @@ jobs:
           sudo apt-get update
           # Includes xdg-utils to fix the Tauri AppImage bundle error
           sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libicu-dev libpng-dev libharfbuzz-dev libgraphite2-dev xdg-utils
-          # Force the Rust linker to include the C++ standard library and Graphite2
-          echo "RUSTFLAGS=-C link-arg=-lstdc++ -C link-arg=-lgraphite2" >> $GITHUB_ENV
+          # Force Tectonic to bake dependencies directly into the binary
+          echo "TECTONIC_PKGCONFIG_FORCE_SEMI_STATIC=1" >> $GITHUB_ENV
 
       # --- MACOS SETUP ---
       - name: Setup Tectonic Dependencies (macOS)
@@ -71,6 +71,9 @@ jobs:
           brew install pkg-config icu4c libpng
           # Specific brew paths for tectonic
           echo "PKG_CONFIG_PATH=/opt/homebrew/opt/icu4c/lib/pkgconfig:/opt/homebrew/opt/libpng/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libpng/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          
+          # Force Tectonic to bake dependencies directly into the binary
+          echo "TECTONIC_PKGCONFIG_FORCE_SEMI_STATIC=1" >> $GITHUB_ENV
 
       # --- WINDOWS SETUP ---
       - name: Setup vcpkg and Dependencies (Windows)
