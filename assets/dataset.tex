@@ -1,0 +1,39 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{margin=0.75in} % Margins adjusted slightly to guarantee a clean one-page fit
+\usepackage{hyperref}
+
+\title{\textbf{Model \& Data Card}}
+\author{RoleTect}
+\date{}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty} % Removes page number for a cleaner single-page look
+
+\section*{1. Dataset(s) Used and Source}
+No custom dataset used. RoleTect \textbf{operates as an agentic workflow application} that processes user-provided inputs (such as job descriptions and resumes) on the fly without relying on a pre-trained custom dataset.
+
+\section*{2. Pre-trained Model(s) Used}
+RoleTect \textbf{leverages multi-provider AI orchestration} to offer users the flexibility to choose the foundational models that best fit their workflow. The application interfaces with the following models and APIs:
+
+\begin{itemize}
+    \item \textbf{Ollama (Local LLMs):} Local execution of models like Llama 3.2, Phi 3, Qwen 2.5 Coder, and Gemma 2 (License: Open-weights, Apache 2.0 / Llama License).
+    \item \textbf{AWS Bedrock:} Amazon Nova, DeepSeek, and other hosted foundation models (Provider: AWS, License: Proprietary / Varies by model).
+    \item \textbf{OpenAI API:} GPT-4o, GPT-4 Turbo, o1, o3-mini (Provider: OpenAI, License: Proprietary).
+    \item \textbf{DeepSeek API:} DeepSeek V3, DeepSeek R1 (Provider: DeepSeek, License: Open-weights / Proprietary API).
+    \item \textbf{Anthropic Claude API:} Claude 3.5 Sonnet, Claude 3.7 Sonnet, Claude Opus (Provider: Anthropic, License: Proprietary).
+    \item \textbf{Google Gemini API:} Gemini 2.5 Pro/Flash, Gemini 3.1 Pro/Flash (Provider: Google, License: Proprietary).
+\end{itemize}
+
+\section*{3. Known Limitations and Ethical Concerns}
+As an agentic application utilizing cloud-based and \textbf{local AI models}, RoleTect inherits the capabilities and potential biases of the underlying foundation models.
+\begin{itemize}
+    \item \textbf{Bias and Fairness:} AI-generated tailored resumes or extracted job requirements might reflect societal biases present in the pre-training data of these models.
+    \item \textbf{Data Privacy:} When using cloud APIs (OpenAI, Gemini, Anthropic), user data (job descriptions and personal resumes) is transmitted over the network. Users are advised to review the data retention policies of their selected API provider. \textbf{For strict privacy concerns, RoleTect supports local execution via Ollama and a secure encrypted vault for local data storage.}
+    \item \textbf{Hallucinations:} The AI might occasionally invent skills or misinterpret job requirements. It is designed as an assistant, and users should always review and verify generated content before submission.
+\end{itemize}
+
+\end{document}

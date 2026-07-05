@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <h3>RoleTect Ingest</h3>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="extract">Extract</div>
+    <div class="tab" data-tab="settings">Settings</div>
+    <div class="tab" data-tab="learn">Learn</div>
+  </div>
+
+  <div id="extract" class="tab-content active">
+    <div class="mode-toggle-container">
+      <span style="font-size: 12px; font-weight: 600;">Advanced Mode</span>
+      <label class="switch">
+        <input type="checkbox" id="modeToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div id="simpleInputArea">
+      <div class="form-group">
+        <span class="section-title">Capture Data (Simple)</span>
+        <label for="selector">CSS Selector (Include)</label>
+        <input type="text" id="selector" value="body" placeholder="e.g. .job-description, main">
+        <label for="excludeSelector" style="margin-top: 8px;">CSS Selector (Exclude)</label>
+        <input type="text" id="excludeSelector" placeholder="e.g. .sidebar, #ads, .footer">
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button id="saveSelectorBtn" class="secondary-btn">Save Selectors</button>
+          <button id="resetSelectorBtn" class="secondary-btn">Reset Default</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="advancedInputArea" style="display:none;">
+      <div class="form-group">
+        <span class="section-title">Capture Data (Mapped)</span>
+        <label for="siteSelector">Select Site Template</label>
+        <select id="siteSelector">
+          <option value="">-- No Sites Saved --</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="extractBtn">Send to RoleTect</button>
+    <button id="interactiveBtn" style="margin-top: 12px; width: 100%; padding: 10px; background-color: #8957e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(137, 87, 229, 0.3); transition: 0.2s;">🎯 Interactive Select (Mouse Tool)</button>
+  </div>
+
+  <div id="settings" class="tab-content">
+    <div class="form-group">
+      <span class="section-title">Server Config</span>
+      <label for="hostType">Connection Type</label>
+      <select id="hostType">
+        <option value="localhost">Localhost (127.0.0.1)</option>
+        <option value="customLocal">Custom Local IP</option>
+        <option value="remote">Remote / Cloud</option>
+      </select>
+    </div>
+
+    <div id="localhostGroup" class="host-group">
+      <div class="form-group">
+        <label for="localPort">Port</label>
+        <input type="number" id="localPort" value="14207" placeholder="14207">
+      </div>
+    </div>
+
+    <div id="customLocalGroup" class="host-group" style="display:none;">
+      <div class="form-group">
+        <label for="customHost">IP / Hostname</label>
+        <input type="text" id="customHost" placeholder="e.g. 192.168.1.5">
+      </div>
+      <div class="form-group">
+        <label for="customPort">Port</label>
+        <input type="number" id="customPort" value="14207" placeholder="14207">
+      </div>
+    </div>
+
+    <div id="remoteGroup" class="host-group" style="display:none;">
+      <div class="form-group">
+        <label for="remoteUrl">Full Backend URL</label>
+        <input type="text" id="remoteUrl" placeholder="https://api.roletect.com">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="secret">Secret Key</label>
+      <input type="password" id="secret" placeholder="Check app Inbox tab">
+    </div>
+    <button id="saveSettingsBtn">Save Configuration</button>
+
+    <div class="backup-zone">
+      <span class="section-title">Manage Site Maps</span>
+      <div id="siteMapList" style="margin-bottom: 12px;"></div>
+      <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px;">
+        <label>Add New Site</label>
+        <input type="text" id="newSiteTitle" placeholder="Site Name (e.g. LinkedIn)" style="margin-bottom: 8px;">
+        <input type="text" id="newSiteSelector" placeholder="Include Selector (e.g. .description)" style="margin-bottom: 8px;">
+        <input type="text" id="newSiteExclude" placeholder="Exclude Selector (Optional)">
+        <button id="addSiteBtn" class="secondary-btn" style="margin-top: 8px; width: 100% !important;">Add Site Map</button>
+      </div>
+
+      <span class="section-title">Backup & Restore</span>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button id="exportBtn" class="secondary-btn">Export JSON</button>
+        <div class="file-input-wrapper">
+          <button class="secondary-btn" style="width: 100%;">Import JSON</button>
+          <input type="file" id="importFile" accept=".json">
+        </div>
+      </div>
+      <div id="restoreOptions" style="display:none; margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+        <p style="font-size: 10px; margin-top: 0;">JSON Loaded. Choose restore type:</p>
+        <div style="display: flex; gap: 8px;">
+          <button id="safeRestoreBtn" class="secondary-btn" style="font-size: 9px !important;">Safe (Merge)</button>
+          <button id="unsafeRestoreBtn" class="secondary-btn" style="font-size: 9px !important; border-color: #f85149 !important;">Unsafe (Overwrite)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="learn" class="tab-content">
+    <div class="tutorial-container">
+      <div>
+        <span class="section-title">🔍 How to Find Tags (DevTools)</span>
+        <div class="info-box">
+          <p style="color: var(--text); margin-bottom: 8px;"><b>1. Open Inspector:</b> Right-click any part of a webpage and select <b>"Inspect"</b> (or press <code>F12</code>).</p>
+          <p style="color: var(--text); margin-bottom: 8px;"><b>2. Find the Code:</b> Hover over the elements in the inspector. The part of the page they belong to will highlight in blue.</p>
+          <p style="color: var(--text);"><b>3. Copy ID or Class:</b> Look for <code>id="..."</code> (use <code>#</code>) or <code>class="..."</code> (use <code>.</code>).</p>
+        </div>
+      </div>
+
+      <div>
+        <span class="section-title">⌨️ Selector Cheatsheet</span>
+        <div class="info-box" style="background: rgba(35, 134, 54, 0.05);">
+          <div style="margin-bottom: 10px;">
+            <code style="color: #3fb950;">#main-content</code>
+            <p style="font-size: 11px; margin: 2px 0;">Targets a unique <b>ID</b>. Best for stability.</p>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <code style="color: #3fb950;">.job-description</code>
+            <p style="font-size: 11px; margin: 2px 0;">Targets a <b>Class</b>. Great for content blocks.</p>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <code style="color: #3fb950;">.text.px-3.pt-2</code>
+            <p style="font-size: 11px; margin: 2px 0;">Targets <b>Multiple Classes</b> on one tag (join with dots).</p>
+          </div>
+          <div>
+            <code style="color: #3fb950;">#title, #desc</code>
+            <p style="font-size: 11px; margin: 2px 0;">Targets <b>Multiple Elements</b> at once (join with comma).</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <span class="section-title">🚀 Advanced Mode Setup</span>
+        <p style="font-size: 12px; margin: 4px 0;">Go to <b>Settings</b> and add your favorite sites. For example, add "LinkedIn" with selector <code>.jobs-description</code>. Now you can just select LinkedIn from the dropdown in the Extract tab!</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <span class="section-title">🤝 Contribute & Request</span>
+        <p style="font-size: 12px; margin: 4px 0;">Found a perfect selector for a new site? Share it! I can add it as a built-in default for everyone.</p>
+        <button id="githubIssueBtn" class="secondary-btn" style="width: 100% !important; margin-top: 8px; border-color: var(--accent) !important;">Submit Site Template on GitHub</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="status" style="display: none; position: fixed; bottom: 12px; left: 12px; width: calc(100% - 24px); box-sizing: border-box; padding: 10px; text-align: center; font-weight: bold; border-radius: 6px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+Here is exactly what the code in  CompilerTab.vue  and  pdf.rs  does for those three different scenarios. The frontend uses some clever logic to figure out which approach to take based on what you
+  have open!
+
+  ### Scenario 1: Unsaved  .tex  (Scratchpad Mode)
+
+  • Trigger: You haven't selected or saved any file to the disk yet, you just have raw code in the editor ( !compileTarget ).
+  • Frontend Action: It invokes the  compile_resume_to_pdf  command, passing the raw string from the editor ( latexCode.value ).
+  • Rust Backend Action:
+      1. Tectonic is booted up with no physical root directory.
+      2. The raw string is fed directly into Tectonic's virtual memory buffer.
+      3. The compilation runs entirely in RAM.
+      4. The generated PDF bytes are extracted from the virtual memory and sent back to the frontend.
+      5. Nothing is written to your hard drive.
+
+
+  ### Scenario 2: Compiling a File inside the Workspace
+
+  • Trigger: You have a file open (e.g.,  /projects/math/main.tex ) and the workspace is set to its parent or root directory (e.g.,  /projects/math ).
+  • Frontend Action: It detects that the file is inside the workspace. It calculates the relative path of the file (e.g. just  main.tex  or  src/main.tex ) and invokes the  compile_workspace_to_pdf
+  command. It sends the workspace directory ( workspaceDir ) and the relative path ( mainFileName ).
+  • Rust Backend Action:
+      1. Tectonic mounts your  workspaceDir  as its filesystem root. This is why you can use  \includegraphics  or  \input  for other files in your workspace!
+      2. It compiles the LaTeX code, but configures the output directory to be a unique folder in your OS's temp directory.
+      3. Once compilation is successful, it copies the generated PDF from the temp folder directly back into your workspace right next to your  .tex  file (e.g.  /projects/math/main.pdf ).
+      4. It returns the raw PDF bytes back to the frontend to render.
+
+
+  ### Scenario 3: Compiling a File OUTSIDE the Workspace (Standalone File)
+
+  • Trigger: You opened a random file on your computer (e.g.,  /Desktop/homework.tex ) that is completely outside your currently open workspace (or you have no workspace open).
+  • Frontend Action: It executes fallback logic to create an "isolated workspace context". It slices the file path in half: the parent directory ( /Desktop ) becomes the  workspaceDir  and the file
+  itself ( homework.tex ) becomes the  mainFileName . It then invokes  compile_workspace_to_pdf .
+  • Rust Backend Action:
+      1. Tectonic mounts the file's immediate parent directory (e.g.,  /Desktop ) as its filesystem root.
+      2. This is extremely smart because it means even if you open a standalone file, it can still correctly resolve images or  .bib  files that are sitting right next to it in the same folder!
+      3. Like Scenario 2, it compiles using a temp directory, copies the final  .pdf  back to your Desktop next to the original file, and returns the bytes to the frontend.

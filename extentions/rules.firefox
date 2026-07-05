@@ -1,0 +1,193 @@
+# Firefox Extension Build Guide (Manifest V3)
+**Date:** May 18, 2026
+**Target:** Mozilla Firefox (Gecko Engine)
+
+## ⚠️ Strict Rules for Firefox in 2026 (Manifest V3)
+1. **Background Scripts (Event Pages) vs Service Workers:** Unlike Chrome which forces Service Workers, Firefox strongly supports standard `background.scripts` in Manifest V3. These act as event pages (they sleep when idle) but offer a more robust environment than Chrome's Service Workers (e.g., access to certain DOM features).
+2. **Mandatory Extension ID:** Firefox explicitly requires you to define an Add-on ID in the manifest via `browser_specific_settings`. If you omit this, network requests (like your local fetch) and local debugging will frequently fail due to CORS and security restrictions.
+3. **The Native `browser.*` API:** Do not use `chrome.*` callbacks in Firefox. Firefox natively supports the `browser.*` namespace, which returns **Promises** by default. This makes your code much cleaner using pure `async/await` without needing wrapper functions.
+4. **Split Contexts (The POST Rule):** Content scripts injected into a webpage cannot directly POST to your local server due to the webpage's Content Security Policy (CSP). You MUST read the DOM in `content.js` and use message passing to send that data to `background.js`, which safely executes the `fetch()` POST request.
+5. **Explicit Host Permissions:** You must explicitly whitelist your local server (`http://127.0.0.1/*` or `http://localhost/*`) in the `host_permissions` array, otherwise Firefox will block the background script from communicating with your PC.
+
+---
+
+## 🛠️ Recommended Process & Complete Code
+Create a folder on your PC and add these 5 exact files.
+
+### 1. manifest.json
+```json
+{
+  "manifest_version": 3,
+  "name": "Firefox Local DOM Extractor",
+  "version": "1.0",
+  "description": "Reads URL and DOM based on user selection, sends to local server.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "dom-extractor@my-local-pc.xyz",
+      "strict_min_version": "115.0"
+    }
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "[http://127.0.0.1/](http://127.0.0.1/)*",
+    "http://localhost/*"
+  ]
+}
+
+
+popup.html
+HTML
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { width: 260px; padding: 12px; font-family: sans-serif; background: #f9f9fb; }
+    input, button { width: 100%; margin-top: 10px; padding: 8px; box-sizing: border-box; }
+    button { background-color: #0060df; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    button:hover { background-color: #003eaa; }
+    #status { margin-top: 12px; font-size: 13px; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>
+  <h3>Firefox DOM Extractor</h3>
+  <label for="selector">CSS Selector:</label>
+  <input type="text" id="selector" value="body" placeholder="e.g. div, body, .class">
+  <button id="extractBtn">Extract & Send</button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
+
+3. popup.js
+JavaScript
+
+document.getElementById('extractBtn').addEventListener('click', async () => {
+  const selector = document.getElementById('selector').value;
+  const statusDiv = document.getElementById('status');
+  statusDiv.textContent = "Processing...";
+  statusDiv.style.color = "black";
+
+  try {
+    // Firefox browser.* API returns a Promise automatically!
+    const response = await browser.runtime.sendMessage({
+      action: "START_EXTRACTION",
+      selector: selector
+    });
+
+    if (response && response.success) {
+      statusDiv.textContent = "Sent successfully!";
+      statusDiv.style.color = "green";
+    } else {
+      throw new Error(response?.error || "Unknown error");
+    }
+  } catch (err) {
+    statusDiv.textContent = "Error: " + err.message;
+    statusDiv.style.color = "red";
+  }
+});
+
+4. content.js
+JavaScript
+
+// Runs inside the actual webpage context
+browser.runtime.onMessage.addListener((request, sender) => {
+  if (request.action === "GET_DOM") {
+    try {
+      const targetElement = document.querySelector(request.selector);
+
+      if (!targetElement) {
+        // Return a promise directly to the background script
+        return Promise.resolve({ success: false, error: `Selector '${request.selector}' not found.` });
+      }
+
+      return Promise.resolve({
+        success: true,
+        url: window.location.href,
+        html: targetElement.outerHTML
+      });
+    } catch (err) {
+      return Promise.resolve({ success: false, error: err.message });
+    }
+  }
+});
+
+5. background.js
+JavaScript
+
+// Listens for the popup clicking the button
+browser.runtime.onMessage.addListener((request, sender) => {
+  if (request.action === "START_EXTRACTION") {
+    // In Firefox, simply returning a Promise from the listener
+    // automatically handles sending the response back to popup.js!
+    return handleExtraction(request.selector);
+  }
+});
+
+async function handleExtraction(selector) {
+  try {
+    // 1. Find the active tab
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (!tab || !tab.id) throw new Error("No active tab found.");
+
+    // 2. Inject the content script so it can read the page
+    await browser.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"]
+    });
+
+    // 3. Ask the injected script for the HTML data
+    const domData = await browser.tabs.sendMessage(tab.id, {
+      action: "GET_DOM",
+      selector: selector
+    });
+
+    if (!domData.success) throw new Error(domData.error);
+
+    // 4. Send the extracted data to your local server on PC
+    const serverResponse = await fetch("http://127.0.0.1:14207/inbox/ingest", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url: domData.url,
+        raw_description: domData.html,
+        secret: "YOUR_SECRET_KEY"
+      })
+    });
+
+    if (!serverResponse.ok) {
+      throw new Error(`Server rejected with status: ${serverResponse.status}`);
+    }
+
+    return { success: true };
+
+  } catch (error) {
+    console.error("Pipeline failed:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+🚀 How to Load & Test in Firefox
+
+    Open Firefox and type about:debugging in the address bar.
+
+    Click This Firefox on the left menu.
+
+    Click the Load Temporary Add-on... button.
+
+    Select your manifest.json file.
+
+    Ensure your local PC server allows CORS (Access-Control-Allow-Origin: *) during development, or Firefox will block the background fetch.

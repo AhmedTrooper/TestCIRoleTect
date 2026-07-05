@@ -1,0 +1,56 @@
+[package]
+name = "roletect"
+version = "0.1.1"
+description = "The LLM Orchestrated, Privacy First, Centralized Job Application Vault, Local First LATEX Engine & Professional Document Optimization Tool"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "roletect_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.39.0", features = ["bundled"] }
+rig = { version = "0.38.1", features = ["gemini-grpc"] }
+tokio = "1.52.3"
+tauri-plugin-stronghold = "2"
+nanoid = "0.5.0"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-os = "2"
+tauri-plugin-process = "2"
+schemars = "1.2.1"
+tectonic = { version = "0.16.9", features = ["external-harfbuzz"] }
+tauri-plugin-shell = "2"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0.102"
+axum = "0.8.9"
+tower-http = { version = "0.6.10", features = ["cors"] }
+rig-bedrock = "0.38.1"
+aws-config = "1.8.5"
+aws-sdk-bedrockruntime = "1.124.0"
+tauri-plugin-localhost = "2.3.2"
+tokio-util = "0.7.18"
+aws-sdk-s3 = "1"
+
+
+[profile.dev.package.rust-argon2]
+opt-level = 3
+
+[profile.dev.package.iota-crypto]
+opt-level = 3

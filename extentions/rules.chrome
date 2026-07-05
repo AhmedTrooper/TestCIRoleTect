@@ -1,0 +1,163 @@
+# Chrome Extension Build Guide (Manifest V3)
+**Date:** May 18, 2026
+**Target:** Google Chrome (Only)
+
+## ⚠️ Strict Rules for 2026 (Manifest V3)
+1. **Service Workers:** Background pages are completely dead. Use `background.js` as a Service Worker. It sleeps when idle, so you cannot use global variables to store state.
+2. **No Remote Code:** You cannot load external scripts (no CDNs). All code must be bundled locally inside your extension folder.
+3. **Split Contexts (The POST Rule):** Content scripts injected into a webpage cannot directly POST to your local server due to the webpage's Content Security Policy (CSP). You MUST read the DOM in `content.js` and use message passing to send that data to `background.js`, which safely executes the `fetch()` POST request.
+4. **Explicit Host Permissions:** You must explicitly whitelist your local server (`http://127.0.0.1/*` or `http://localhost/*`) in the `host_permissions` array, otherwise Chrome will block the background script from sending the network request.
+
+---
+
+## 🛠️ Recommended Process & Complete Code
+Create a folder on your PC and add these 5 exact files.
+
+### 1. manifest.json
+```json
+{
+  "manifest_version": 3,
+  "name": "Local DOM Extractor",
+  "version": "1.0",
+  "description": "Reads URL and DOM based on user selection, sends to local server.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "[http://127.0.0.1/](http://127.0.0.1/)*",
+    "http://localhost/*"
+  ]
+}
+```
+
+### 2. popup.html
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 250px; padding: 10px; font-family: sans-serif; }
+    input, button { width: 100%; margin-top: 10px; padding: 8px; box-sizing: border-box; }
+    #status { margin-top: 10px; font-size: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h3>DOM Extractor</h3>
+  <label for="selector">CSS Selector:</label>
+  <input type="text" id="selector" value="body" placeholder="e.g. div, body, .class">
+  <button id="extractBtn">Extract & Send</button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
+```
+
+### 3. popup.js
+```javascript
+document.getElementById('extractBtn').addEventListener('click', () => {
+  const selector = document.getElementById('selector').value;
+  const statusDiv = document.getElementById('status');
+  statusDiv.textContent = "Processing...";
+  statusDiv.style.color = "black";
+
+  // Tell the background worker to start the process
+  chrome.runtime.sendMessage({ action: "START_EXTRACTION", selector: selector }, (response) => {
+    if (response && response.success) {
+      statusDiv.textContent = "Sent successfully!";
+      statusDiv.style.color = "green";
+    } else {
+      statusDiv.textContent = "Error: " + (response?.error || "Unknown error");
+      statusDiv.style.color = "red";
+    }
+  });
+});
+```
+
+### 4. content.js
+```javascript
+// Runs inside the actual webpage context
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "GET_DOM") {
+    try {
+      const targetElement = document.querySelector(request.selector);
+
+      if (!targetElement) {
+        sendResponse({ success: false, error: `Selector '${request.selector}' not found.` });
+        return true;
+      }
+
+      sendResponse({
+        success: true,
+        url: window.location.href,
+        html: targetElement.outerHTML
+      });
+    } catch (err) {
+      sendResponse({ success: false, error: err.message });
+    }
+  }
+  return true;
+});
+```
+
+### 5. background.js
+```javascript
+// Listens for the popup clicking the button
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "START_EXTRACTION") {
+    handleExtraction(request.selector).then(sendResponse);
+    return true; // Keep the messaging channel open for the async response
+  }
+});
+
+async function handleExtraction(selector) {
+  try {
+    // 1. Find the active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) throw new Error("No active tab found.");
+
+    // 2. Inject the content script so it can read the page
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"]
+    });
+
+    // 3. Ask the injected script for the HTML data
+    const domData = await chrome.tabs.sendMessage(tab.id, {
+      action: "GET_DOM",
+      selector: selector
+    });
+
+    if (!domData.success) throw new Error(domData.error);
+
+    // 4. Send the extracted data to your local server on PC
+    const serverResponse = await fetch("http://127.0.0.1:14207/inbox/ingest", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url: domData.url,
+        raw_description: domData.html,
+        secret: "YOUR_SECRET_KEY"
+      })
+    });
+
+    if (!serverResponse.ok) {
+      throw new Error(`Server rejected with status: ${serverResponse.status}`);
+    }
+
+    return { success: true };
+
+  } catch (error) {
+    console.error("Pipeline failed:", error);
+    return { success: false, error: error.message };
+  }
+}
+```
