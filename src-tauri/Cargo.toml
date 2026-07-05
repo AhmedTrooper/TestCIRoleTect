@@ -1,6 +1,6 @@
 [package]
 name = "roletect"
-version = "0.1.2"
+version = "0.1.3"
 description = "The LLM Orchestrated, Privacy First, Centralized Job Application Vault, Local First LATEX Engine & Professional Document Optimization Tool"
 authors = ["you"]
 edition = "2021"
@@ -35,7 +35,7 @@ tauri-plugin-notification = "2"
 tauri-plugin-os = "2"
 tauri-plugin-process = "2"
 schemars = "1.2.1"
-tectonic = { version = "0.16.9", features = ["external-harfbuzz"] }
+tectonic = { version = "0.16.9" }
 tauri-plugin-shell = "2"
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0.102"
