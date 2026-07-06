@@ -18,27 +18,33 @@ jobs:
           # --- APPLE ---
           - platform: "macos-latest"
             target: "aarch64-apple-darwin"
+            config_flag: ""
             args: "--target aarch64-apple-darwin"
 
-          # --- LINUX (SPLIT MATRIX FOR 100% COVERAGE) ---
-          - platform: "ubuntu-22.04" # Outputs an AppImage specifically for Ubuntu 22 Users
+          # --- LINUX DISTRIBUTIONS (DIVIDED TO PREVENT OVERWRITES) ---
+          - platform: "ubuntu-22.04" 
             target: "x86_64-unknown-linux-gnu"
+            config_flag: "--config src-tauri/tauri.ubuntu22.conf.json" # Keeps files distinct
             args: ""
-          - platform: "ubuntu-24.04" # Outputs an AppImage specifically for Ubuntu 24 & 26 Users
+          - platform: "ubuntu-24.04" 
             target: "x86_64-unknown-linux-gnu"
+            config_flag: "" # Uses default name (RoleTect) for modern 24/26 setups
             args: ""
-          - platform: "ubuntu-24.04-arm" # Linux ARM64
+          - platform: "ubuntu-24.04-arm" 
             target: "aarch64-unknown-linux-gnu"
+            config_flag: ""
             args: ""
 
           # --- WINDOWS ---
           - platform: "windows-latest"
             target: "x86_64-pc-windows-msvc"
             vcpkg_triplet: "x64-windows-static-md"
+            config_flag: ""
             args: ""
           - platform: "windows-latest"
             target: "aarch64-pc-windows-msvc"
             vcpkg_triplet: "arm64-windows-static-md"
+            config_flag: ""
             args: "--target aarch64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
@@ -96,11 +102,19 @@ jobs:
           releaseName: "RoleTect v__VERSION__"
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          # Combines configuration overrides to differentiate filenames
+          args: ${{ matrix.args }} ${{ matrix.config_flag }}
           releaseBody: |
             ## 📥 Which file should I download?
-            Select the correct file based on your Linux layout distribution version:
+            Select the correct file from the **Assets** list below based on your operating system and computer architecture.
 
-            ### 🐧 Linux (Intel/AMD)
-            * **Ubuntu 22.04 LTS / Older Distros**: Download the standard `amd64` AppImage.
-            * **Ubuntu 24.04 / Kubuntu 26.04 / Modern Distros**: Download the high-compatibility modern `amd64` AppImage variant.
+            ### 🍎 macOS
+            * **Apple Silicon (M1/M2/M3/M4)**: Download the `aarch64` file (e.g., `.dmg` or `.app.tar.gz`)
+
+            ### 🪟 Windows
+            * **Standard PC (Most Intel/AMD)**: Download the `x64` file (e.g., `-setup.exe` or `.msi`)
+            * **Windows on ARM (Snapdragon/Copilot+)**: Download the `arm64` or `aarch64` file (e.g., `-setup.exe`)
+
+            ### 🐧 Linux
+            * **Ubuntu 22.04 LTS**: Download the `RoleTect-Ubuntu22` asset bundle.
+            * **Ubuntu 24.04 / Kubuntu 26.04**: Download the standard `RoleTect` asset bundle.
